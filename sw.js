@@ -1,5 +1,5 @@
 // Bump VERSION whenever the game files change so players get the update.
-const VERSION = 'snakes-v7';
+const VERSION = 'snakes-v8';
 const FILES = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {

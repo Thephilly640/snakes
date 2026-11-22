@@ -50,6 +50,7 @@
   .pill svg{width:20px;height:20px;fill:none;stroke:var(--txt);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
   #how{color:var(--dim);font-size:14px;line-height:1.5;max-width:300px;margin-top:30px}
   #iosTip{color:var(--dim);font-size:13px;margin-top:14px}
+  #ver{position:absolute;left:0;right:0;bottom:calc(env(safe-area-inset-bottom) + 14px);color:#555;font-size:12px;font-weight:600;letter-spacing:.05em}
 
   /* result sheet */
   #sheetWrap{position:fixed;inset:0;background:rgba(5,7,12,.6);display:flex;align-items:flex-end;justify-content:center}
@@ -75,6 +76,7 @@
     <button class="pill hide" id="install"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Install</button>
   </div>
   <p id="iosTip" class="hide">To install: tap Share, then Add to Home Screen</p>
+  <div id="ver"></div>
   <p id="how">Tap a snake to send it out the way its head points. Hit something and you lose a heart. Rocks never move.</p>
 </div>
 
@@ -114,6 +116,10 @@
 
 <script>
 const $=id=>document.getElementById(id);
+// Bump on every update so you can tell the new build loaded.
+const APP_VERSION='1.8';
+const APP_DATE='Nov 22, 2026';
+$('ver').textContent='Version '+APP_VERSION+' · '+APP_DATE;
 const cv=$('c'),ctx=cv.getContext('2d');
 const DIRS=[[-1,0],[0,1],[1,0],[0,-1]]; // up,right,down,left
 const SNAKE='#ffffff';
