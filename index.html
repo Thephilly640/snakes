@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Slither Out</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#14161f">
@@ -11,52 +11,109 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Slither Out">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
-  html,body{margin:0;height:100%;background:#14161f;color:#e9ecf5;overflow:hidden;touch-action:none;
-    font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;user-select:none;-webkit-user-select:none}
-  #top{position:absolute;top:0;left:0;right:0;height:64px;display:flex;align-items:center;gap:10px;padding:0 14px;max-width:560px;margin:0 auto}
-  .btn{height:44px;min-width:44px;border-radius:22px;border:0;background:#2a2f42;color:#e9ecf5;font:inherit;font-weight:700;font-size:15px;padding:0 14px;cursor:pointer}
-  .btn:active{transform:scale(.95)}
-  #lvl{font-weight:800;font-size:18px;flex:1;text-align:center}
-  #hearts{font-size:22px;letter-spacing:2px;min-width:80px;text-align:right}
-  canvas{position:absolute;left:0;top:64px}
-  #overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    background:rgba(10,12,18,.82);text-align:center;padding:24px}
-  #overlay h1{margin:0 0 8px;font-size:34px}
-  #overlay p{margin:6px 0;opacity:.85;font-size:16px;max-width:320px;line-height:1.45}
-  #overlay .go{margin-top:20px;font-size:20px;font-weight:800;padding:14px 44px;border:0;border-radius:14px;background:#7cf0b4;color:#0b2418;cursor:pointer}
-  .inst{margin-top:14px;font:inherit;font-size:16px;font-weight:700;padding:10px 24px;border-radius:12px;border:2px solid #7cf0b4;background:transparent;color:#7cf0b4;cursor:pointer}
-  #overlay .tip{font-size:14px;opacity:.7;margin-top:14px}
+  :root{--bg:#14161f;--card:#1c2030;--btn:#2b3149;--txt:#eef1f8;--dim:#8a91aa;--accent:#7cf0b4;--red:#ff4d6a}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);overflow:hidden;overscroll-behavior:none;touch-action:none;
+    font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
+  button{font:inherit;color:inherit;border:0;cursor:pointer}
+  button:active{transform:scale(.93)}
+  .screen{position:fixed;inset:0;display:flex;flex-direction:column;
+    padding:calc(env(safe-area-inset-top) + 10px) calc(env(safe-area-inset-right) + 16px) calc(env(safe-area-inset-bottom) + 12px) calc(env(safe-area-inset-left) + 16px)}
   .hide{display:none!important}
+
+  /* game header */
+  #bar{display:flex;align-items:center;gap:10px;height:56px;flex:none}
+  .ico{width:48px;height:48px;border-radius:50%;background:var(--btn);display:grid;place-items:center;position:relative;flex:none}
+  .ico svg{width:24px;height:24px;fill:none;stroke:var(--txt);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+  .badge{position:absolute;top:-3px;right:-3px;background:var(--accent);color:#0b2418;font-size:12px;font-weight:800;min-width:20px;height:20px;border-radius:10px;display:grid;place-items:center;padding:0 5px}
+  #hearts{flex:1;display:flex;justify-content:center;gap:6px}
+  #hearts svg{width:30px;height:30px}
+  #prog{height:8px;border-radius:4px;background:#262b3d;margin:12px 4px 4px;overflow:hidden;flex:none}
+  #progFill{height:100%;width:0;background:var(--accent);border-radius:4px;transition:width .3s}
+  #lvlLabel{text-align:center;color:var(--dim);font-weight:700;font-size:13px;letter-spacing:.12em;margin-top:6px;flex:none}
+  #stage{flex:1;position:relative;min-height:0}
+  canvas{position:absolute;inset:0;width:100%;height:100%}
+
+  /* home */
+  #home{align-items:center;justify-content:center;text-align:center;background:radial-gradient(120% 70% at 50% 0%,#23293f 0%,var(--bg) 60%)}
+  #home img{width:120px;height:120px;border-radius:28px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+  #home h1{font-size:40px;margin:22px 0 4px;letter-spacing:.02em}
+  #home .sub{color:var(--dim);font-weight:700;margin:0 0 34px;font-size:16px}
+  .big{width:min(320px,80vw);height:62px;border-radius:31px;background:var(--accent);color:#0b2418;font-size:22px;font-weight:800;box-shadow:0 6px 0 #4fb685}
+  .big:active{transform:translateY(4px);box-shadow:0 2px 0 #4fb685}
+  .row{display:flex;gap:12px;margin-top:16px;width:min(320px,80vw)}
+  .pill{flex:1;height:52px;border-radius:26px;background:var(--btn);font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center;gap:8px}
+  .pill svg{width:20px;height:20px;fill:none;stroke:var(--txt);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+  #how{color:var(--dim);font-size:14px;line-height:1.5;max-width:300px;margin-top:30px}
+  #iosTip{color:var(--dim);font-size:13px;margin-top:14px}
+
+  /* result sheet */
+  #sheetWrap{position:fixed;inset:0;background:rgba(5,7,12,.6);display:flex;align-items:flex-end;justify-content:center}
+  #sheet{width:100%;max-width:520px;background:var(--card);border-radius:26px 26px 0 0;padding:26px 22px calc(env(safe-area-inset-bottom) + 22px);text-align:center;animation:up .28s ease-out}
+  @keyframes up{from{transform:translateY(100%)}to{transform:none}}
+  #sheet h2{margin:0 0 6px;font-size:28px}
+  #sheet p{margin:0 0 20px;color:var(--dim);font-weight:600}
+  #sheet .big{width:100%}
+  #sheet .row{width:100%}
+  #toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 30px);transform:translateX(-50%);background:var(--txt);color:var(--bg);font-weight:800;padding:12px 20px;border-radius:24px}
 </style>
 </head>
 <body>
-<div id="top">
-  <button class="btn" id="restart" aria-label="Restart level">↻</button>
-  <button class="btn" id="hint">💡 <span id="hintN">3</span></button>
-  <div id="lvl">Level 1</div>
-  <div id="hearts">❤️❤️❤️</div>
-  <button class="btn" id="share" aria-label="Share">📤</button>
+
+<!-- HOME SCREEN -->
+<div id="home" class="screen">
+  <img src="icon-512.png" alt="">
+  <h1>Slither Out</h1>
+  <p class="sub" id="homeLvl">Level 1</p>
+  <button class="big" id="play">Play</button>
+  <div class="row">
+    <button class="pill" id="shareHome"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>Share</button>
+    <button class="pill hide" id="install"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Install</button>
+  </div>
+  <p id="iosTip" class="hide">To install: tap Share, then Add to Home Screen</p>
+  <p id="how">Tap a snake to send it out the way its head points. Hit something and you lose a heart. Rocks never move.</p>
 </div>
-<canvas id="c"></canvas>
-<div id="overlay">
-  <h1 id="oTitle">SLITHER OUT</h1>
-  <p id="oMsg">Tap a snake to send it out the way its head is pointing. If something's in the way, you lose a heart. Rocks never move. Clear the board.</p>
-  <button class="go" id="oBtn">PLAY</button>
-  <button class="inst hide" id="install">📲 Install app</button>
-  <button class="inst" id="share2">📤 Share with friends</button>
-  <div id="toast" class="hide" style="position:fixed;bottom:40px;left:50%;transform:translateX(-50%);background:#7cf0b4;color:#0b2418;font-weight:700;padding:10px 18px;border-radius:10px">Link copied</div>
-  <p class="tip hide" id="iosTip">To install: tap Share <b>⎋</b> then <b>Add to Home Screen</b></p>
+
+<!-- GAME SCREEN -->
+<div id="game" class="screen hide">
+  <div id="bar">
+    <button class="ico" id="homeBtn" aria-label="Home"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <button class="ico" id="restart" aria-label="Restart"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.4-5.7M4 4v5h5"/></svg></button>
+    <div id="hearts"></div>
+    <button class="ico" id="hint" aria-label="Hint"><svg viewBox="0 0 24 24"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></svg><span class="badge" id="hintN">3</span></button>
+    <button class="ico" id="share" aria-label="Share"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg></button>
+  </div>
+  <div id="prog"><div id="progFill"></div></div>
+  <div id="lvlLabel">LEVEL 1</div>
+  <div id="stage"><canvas id="c"></canvas></div>
 </div>
+
+<!-- RESULT SHEET -->
+<div id="sheetWrap" class="hide">
+  <div id="sheet">
+    <h2 id="sTitle">Board clear!</h2>
+    <p id="sMsg"></p>
+    <button class="big" id="sBtn">Next level</button>
+    <div class="row">
+      <button class="pill" id="sHome">Home</button>
+      <button class="pill" id="sShare"><svg viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>Share</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="hide">Link copied</div>
+
 <script>
-const cv=document.getElementById('c'),ctx=cv.getContext('2d');
 const $=id=>document.getElementById(id);
+const cv=$('c'),ctx=cv.getContext('2d');
 const DIRS=[[-1,0],[0,1],[1,0],[0,-1]]; // up,right,down,left
-const PAL=['#7cf0b4','#7aa2ff','#ff8fa3','#ffd166','#c49bff','#5ee0f0','#ffa66b','#b5f26b'];
+const SNAKE='#eef1f8';
+const HEART='<svg viewBox="0 0 24 24"><path fill="FILL" d="M12 21s-7.5-4.6-9.6-9.2C1 8.6 3 5 6.6 5c2.1 0 3.6 1.2 5.4 3.2C13.8 6.2 15.3 5 17.4 5 21 5 23 8.6 21.6 11.8 19.5 16.4 12 21 12 21z"/></svg>';
 
 let level=1; try{level=+localStorage.getItem('so_level')||1}catch(e){}
-let R,C,grid,pieces,hearts,hints,cs,ox,oy,W,H,state='menu',hintPiece=-1,hintUntil=0;
+let R,C,grid,pieces,hearts,hints,cs,ox,oy,W,H,state='menu',hintPiece=-1,hintUntil=0,total=0;
 
 function rnd(n){return Math.floor(Math.random()*n)}
 function inB(r,c){return r>=0&&c>=0&&r<R&&c<C}
@@ -92,30 +149,36 @@ function generate(){
       }
       const id=pieces.length;
       for(const [r2,c2] of body)grid[idx(r2,c2)]=id;
-      pieces.push({id,d,cells:body.slice().reverse(),color:PAL[id%PAL.length],gone:false,anim:null,bump:0});
+      pieces.push({id,d,cells:body.slice().reverse(),gone:false,anim:null,bump:0});
       filled+=body.length;
     }
     if(pieces.length>=Math.min(6+level,R*C/4))break;
   }
-  hearts=3;hints=3;hintPiece=-1;
+  total=pieces.length;hearts=3;hints=3;hintPiece=-1;
   layout();updateHud();
 }
 
 function layout(){
-  W=window.innerWidth;H=window.innerHeight-64;
+  const st=$('stage');
+  W=st.clientWidth;H=st.clientHeight;
   const dpr=window.devicePixelRatio||1;
-  cv.width=W*dpr;cv.height=H*dpr;cv.style.width=W+'px';cv.style.height=H+'px';
+  cv.width=W*dpr;cv.height=H*dpr;
   ctx.setTransform(dpr,0,0,dpr,0,0);
   if(!R)return;
-  cs=Math.floor(Math.min((W-28)/C,(H-28)/R));
+  cs=Math.floor(Math.min((W-12)/C,(H-12)/R));
   ox=(W-cs*C)/2;oy=(H-cs*R)/2;
 }
 window.addEventListener('resize',layout);
 
 function updateHud(){
-  $('lvl').textContent='Level '+level;
-  $('hearts').textContent='❤️'.repeat(hearts)+'🖤'.repeat(3-hearts);
+  $('lvlLabel').textContent='LEVEL '+level;
+  $('homeLvl').textContent='Level '+level;
+  let h='';for(let i=0;i<3;i++)h+=HEART.replace('FILL',i<hearts?'#ff4d6a':'#3a3f55');
+  $('hearts').innerHTML=h;
   $('hintN').textContent=hints;
+  $('hint').style.opacity=hints?1:.45;
+  const cleared=pieces?pieces.filter(p=>p.gone||p.anim).length:0;
+  $('progFill').style.width=(total?cleared/total*100:0)+'%';
 }
 
 function blocker(p){
@@ -133,10 +196,9 @@ function tapPiece(p){
     if(b>=0)pieces[b].bump=performance.now();
     hearts--;updateHud();
     if(navigator.vibrate)try{navigator.vibrate(80)}catch(e){}
-    if(hearts<=0){state='lost';setTimeout(()=>showOverlay('Out of hearts','Board got you that time. Same level, fresh layout.','TRY AGAIN'),500)}
+    if(hearts<=0){state='lost';setTimeout(()=>sheet('Out of hearts','Same level, fresh board.','Try again'),500)}
     return;
   }
-  // build exit path: tail..head, then straight on past the edge
   const [dr,dc]=DIRS[p.d],path=p.cells.map(x=>[x[0],x[1]]);
   let [r,c]=path[path.length-1];
   const extra=Math.max(R,C)+p.cells.length+2;
@@ -144,37 +206,44 @@ function tapPiece(p){
   for(const [r2,c2] of p.cells)grid[idx(r2,c2)]=-1;
   p.anim={path,s:0,max:extra};
   if(hintPiece===p.id)hintPiece=-1;
+  updateHud();
 }
 
 cv.addEventListener('pointerdown',e=>{
   if(state!=='play')return;
   const rect=cv.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;
-  const c=Math.floor((x-ox)/cs),r=Math.floor((y-oy)/cs);
   let best=null,bd=1e9;
   for(const p of pieces){if(p.gone||p.anim)continue;
     for(const [pr,pc] of p.cells){
-      const cx=ox+(pc+.5)*cs,cy=oy+(pr+.5)*cs,d=Math.hypot(cx-x,cy-y);
+      const d=Math.hypot(ox+(pc+.5)*cs-x,oy+(pr+.5)*cs-y);
       if(d<bd){bd=d;best=p}
     }}
   if(best&&bd<cs*0.75)tapPiece(best);
 });
 
-$('restart').onclick=()=>{if(state==='play'||state==='lost'){generate();state='play';$('overlay').classList.add('hide')}};
+// screens
+function show(id){for(const s of ['home','game'])$(s).classList.toggle('hide',s!==id);if(id==='game')layout()}
+function startLevel(){$('sheetWrap').classList.add('hide');show('game');generate();state='play'}
+function goHome(){$('sheetWrap').classList.add('hide');state='menu';updateHud();show('home')}
+function sheet(t,m,b){$('sTitle').textContent=t;$('sMsg').textContent=m;$('sBtn').textContent=b;$('sheetWrap').classList.remove('hide')}
+
+$('play').onclick=startLevel;
+$('sBtn').onclick=startLevel;
+$('sHome').onclick=goHome;
+$('homeBtn').onclick=goHome;
+$('restart').onclick=()=>{if(state==='play'||state==='lost')startLevel()};
 $('hint').onclick=()=>{
   if(state!=='play'||hints<=0)return;
   const free=pieces.find(p=>!p.gone&&!p.anim&&blocker(p)===null);
   if(free){hintPiece=free.id;hintUntil=performance.now()+2200;hints--;updateHud()}
 };
-$('oBtn').onclick=()=>{generate();state='play';$('overlay').classList.add('hide')};
 
-function showOverlay(t,m,b){$('oTitle').textContent=t;$('oMsg').textContent=m;$('oBtn').textContent=b;$('overlay').classList.remove('hide')}
-
+// drawing
 function pt(path,f){
   const i=Math.max(0,Math.min(path.length-1,Math.floor(f))),j=Math.min(path.length-1,i+1),t=f-i;
   const a=path[i],b=path[j];
   return [ox+((a[1]+(b[1]-a[1])*t)+.5)*cs, oy+((a[0]+(b[0]-a[0])*t)+.5)*cs];
 }
-
 function drawPiece(p,now){
   let path=p.cells,s=0;
   if(p.anim){path=p.anim.path;s=p.anim.s}
@@ -182,35 +251,28 @@ function drawPiece(p,now){
   const pts=[pt(path,f0)];
   for(let k=Math.floor(f0)+1;k<f1;k++)pts.push(pt(path,k));
   pts.push(pt(path,f1));
-  let sx=0,sy=0,col=p.color;
+  let sx=0,sy=0,col=SNAKE;
   const bt=now-p.bump;
-  if(bt<380){const a=Math.sin(bt/380*Math.PI*4)*cs*0.12*(1-bt/380);sx=DIRS[p.d][1]*a;sy=DIRS[p.d][0]*a;col='#ff4d5e'}
+  if(bt<380){const a=Math.sin(bt/380*Math.PI*4)*cs*0.12*(1-bt/380);sx=DIRS[p.d][1]*a;sy=DIRS[p.d][0]*a;col='#ff4d6a'}
   const glow=p.id===hintPiece&&now<hintUntil;
+  if(glow)col='#7cf0b4';
   ctx.save();ctx.translate(sx,sy);
   ctx.lineCap='round';ctx.lineJoin='round';
-  if(glow){ctx.shadowColor='#fff';ctx.shadowBlur=18+8*Math.sin(now/120)}
-  // body
-  ctx.strokeStyle=col;ctx.lineWidth=cs*0.38;
+  if(glow){ctx.shadowColor='#7cf0b4';ctx.shadowBlur=16+8*Math.sin(now/120)}
+  ctx.strokeStyle=col;ctx.lineWidth=cs*0.3;
   const [hx,hy]=pts[pts.length-1],[dr,dc]=DIRS[p.d];
   ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
   for(let k=1;k<pts.length;k++)ctx.lineTo(pts[k][0],pts[k][1]);
   ctx.stroke();
-  // belly stripe
-  ctx.shadowBlur=0;
-  ctx.strokeStyle='rgba(255,255,255,.22)';ctx.lineWidth=cs*0.1;ctx.setLineDash([cs*0.12,cs*0.16]);
-  ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
-  for(let k=1;k<pts.length;k++)ctx.lineTo(pts[k][0],pts[k][1]);
-  ctx.stroke();ctx.setLineDash([]);
-  // head
-  const hs=cs*0.34;
+  const hs=cs*0.32;
   ctx.fillStyle=col;ctx.beginPath();
-  ctx.moveTo(hx+dc*hs*1.25,hy+dr*hs*1.25);
-  ctx.lineTo(hx-dr*hs+dc*-hs*0.2,hy+dc*hs+dr*-hs*0.2);
-  ctx.lineTo(hx+dr*hs+dc*-hs*0.2,hy-dc*hs+dr*-hs*0.2);
+  ctx.moveTo(hx+dc*hs*1.3,hy+dr*hs*1.3);
+  ctx.lineTo(hx-dr*hs-dc*hs*0.2,hy+dc*hs-dr*hs*0.2);
+  ctx.lineTo(hx+dr*hs-dc*hs*0.2,hy-dc*hs-dr*hs*0.2);
   ctx.closePath();ctx.fill();
-  // eyes
+  ctx.shadowBlur=0;
   ctx.fillStyle='#14161f';
-  const ex=dc*hs*0.25,ey=dr*hs*0.25,px=-dr*hs*0.38,py=dc*hs*0.38,er=Math.max(1.5,cs*0.05);
+  const ex=dc*hs*0.22,ey=dr*hs*0.22,px=-dr*hs*0.36,py=dc*hs*0.36,er=Math.max(1.5,cs*0.045);
   ctx.beginPath();ctx.arc(hx+ex+px,hy+ey+py,er,0,7);ctx.arc(hx+ex-px,hy+ey-py,er,0,7);ctx.fill();
   ctx.restore();
 }
@@ -218,18 +280,14 @@ function drawPiece(p,now){
 let last=performance.now();
 function loop(now){
   const dt=Math.min(0.05,(now-last)/1000);last=now;
-  ctx.clearRect(0,0,W,H);
-  if(R&&state!=='menu'){
-    // board
-    ctx.fillStyle='#1b1e2b';
-    ctx.beginPath();ctx.roundRect?ctx.roundRect(ox-8,oy-8,cs*C+16,cs*R+16,14):ctx.rect(ox-8,oy-8,cs*C+16,cs*R+16);ctx.fill();
-    ctx.fillStyle='rgba(255,255,255,.07)';
-    for(let r=0;r<R;r++)for(let c=0;c<C;c++){ctx.beginPath();ctx.arc(ox+(c+.5)*cs,oy+(r+.5)*cs,cs*0.06,0,7);ctx.fill()}
-    // rocks
+  if(state!=='menu'&&R){
+    ctx.clearRect(0,0,W,H);
+    ctx.fillStyle='rgba(255,255,255,.06)';
+    for(let r=0;r<R;r++)for(let c=0;c<C;c++){ctx.beginPath();ctx.arc(ox+(c+.5)*cs,oy+(r+.5)*cs,cs*0.05,0,7);ctx.fill()}
     for(let r=0;r<R;r++)for(let c=0;c<C;c++)if(grid[idx(r,c)]===-2){
-      const x=ox+c*cs+cs*0.12,y=oy+r*cs+cs*0.12,s=cs*0.76;
-      ctx.fillStyle='#4a4f63';ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,s,s,cs*0.22):ctx.rect(x,y,s,s);ctx.fill();
-      ctx.fillStyle='#5d6379';ctx.beginPath();ctx.arc(x+s*0.35,y+s*0.35,s*0.16,0,7);ctx.fill();
+      const x=ox+c*cs+cs*0.14,y=oy+r*cs+cs*0.14,s=cs*0.72;
+      ctx.fillStyle='#3d4358';ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,s,s,cs*0.22):ctx.rect(x,y,s,s);ctx.fill();
+      ctx.fillStyle='#50576f';ctx.beginPath();ctx.arc(x+s*0.35,y+s*0.35,s*0.15,0,7);ctx.fill();
     }
     let left=0;
     for(const p of pieces){
@@ -239,14 +297,15 @@ function loop(now){
     }
     if(state==='play'&&left===0){
       state='won';level++;try{localStorage.setItem('so_level',level)}catch(e){}
-      setTimeout(()=>showOverlay('Board clear!',hearts===3?'Perfect run, no hearts lost.':'Cleared with '+hearts+' heart'+(hearts>1?'s':'')+' left.','LEVEL '+level),350);
+      updateHud();
+      setTimeout(()=>sheet('Board clear!',hearts===3?'Perfect run, no hearts lost.':'Cleared with '+hearts+' heart'+(hearts>1?'s':'')+' left.','Level '+level),350);
     }
   }
   requestAnimationFrame(loop);
 }
-layout();requestAnimationFrame(loop);
+updateHud();requestAnimationFrame(loop);
 
-// --- Share ---
+// share
 const SHARE_URL='https://thephilly640.github.io/slither-out/';
 async function share(){
   const text=level>1?'I made it to level '+level+' in Slither Out. Beat that:':'Try Slither Out, a snake puzzle game:';
@@ -254,9 +313,9 @@ async function share(){
   try{await navigator.clipboard.writeText(text+' '+SHARE_URL)}catch(e){}
   const t=$('toast');t.classList.remove('hide');setTimeout(()=>t.classList.add('hide'),1800);
 }
-$('share').onclick=share;$('share2').onclick=share;
+$('share').onclick=share;$('shareHome').onclick=share;$('sShare').onclick=share;
 
-// --- Installable app ---
+// installable app
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}
 const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
 let deferredPrompt=null;
@@ -270,6 +329,7 @@ $('install').onclick=async()=>{
 window.addEventListener('appinstalled',()=>$('install').classList.add('hide'));
 const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 if(isIOS&&!standalone)$('iosTip').classList.remove('hide');
+document.addEventListener('gesturestart',e=>e.preventDefault());
 </script>
 </body>
 </html>

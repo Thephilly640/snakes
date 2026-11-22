@@ -1,5 +1,5 @@
 // Bump VERSION whenever the game files change so players get the update.
-const VERSION = 'slither-v2';
+const VERSION = 'slither-v3';
 const FILES = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
@@ -16,7 +16,7 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   e.respondWith(
-    fetch(e.request)
+    (new URL(e.request.url).origin===location.origin?fetch(e.request.url,{cache:'no-cache'}):fetch(e.request))
       .then(res => { const copy = res.clone(); caches.open(VERSION).then(c => c.put(e.request, copy)); return res; })
       .catch(() => caches.match(e.request).then(r => r || caches.match('./index.html')))
   );
