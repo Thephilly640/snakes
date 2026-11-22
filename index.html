@@ -111,16 +111,17 @@
 <script>
 const $=id=>document.getElementById(id);
 // Bump on every update so you can tell the new build loaded.
-const APP_VERSION='2.0';
+const APP_VERSION='2.1';
 const APP_DATE='Nov 22, 2026';
 $('ver').textContent='Version '+APP_VERSION+' · '+APP_DATE;
 const cv=$('c'),ctx=cv.getContext('2d');
-const DIRS=[[-1,0],[0,1],[1,0],[0,-1]]; // up,right,down,left
+const DIRS=[[-1,0],[0,1],[1,0],[0,-1],[-1,1],[1,1],[1,-1],[-1,-1]]; // up,right,down,left, then diagonals
+const ORTHO=DIRS.slice(0,4);
 const SNAKE='#ffffff';
 const HEART='<svg viewBox="0 0 24 24"><path fill="FILL" d="M12 21s-7.5-4.6-9.6-9.2C1 8.6 3 5 6.6 5c2.1 0 3.6 1.2 5.4 3.2C13.8 6.2 15.3 5 17.4 5 21 5 23 8.6 21.6 11.8 19.5 16.4 12 21 12 21z"/></svg>';
 
 let level=1; try{level=+localStorage.getItem('so_level')||1}catch(e){}
-let R,C,grid,pieces,hearts,hints,cs,ox,oy,W,H,state='menu',hintPiece=-1,hintUntil=0,total=0,mistakes=0;
+let R,C,grid,corner,pieces,hearts,hints,cs,ox,oy,W,H,state='menu',hintPiece=-1,hintUntil=0,total=0,mistakes=0;
 // Hearts carry over between levels: start with 1, earn 1 per perfect board, max 3.
 hearts=1;try{hearts=Math.min(3,+localStorage.getItem('so_lives')||1)}catch(e){}
 function saveLives(){try{localStorage.setItem('so_lives',hearts)}catch(e){}}
@@ -129,42 +130,63 @@ function rnd(n){return Math.floor(Math.random()*n)}
 function inB(r,c){return r>=0&&c>=0&&r<R&&c<C}
 function idx(r,c){return r*C+c}
 
+function cornerOf(r1,c1,r2,c2){return idx(Math.min(r1,r2),Math.min(c1,c2))}
+function isDiag(a,b){return a[0]!==b[0]&&a[1]!==b[1]}
+// Diagonal snakes show up after level 50, more often as you climb.
+function diagChance(){return level>50?Math.min(0.5,0.2+(level-51)*0.01):0}
+
 function generate(){
   C=Math.min(5+Math.floor(level/2),30);
   R=C<=11?Math.min(Math.round(C*1.5),16):Math.round(C*1.45);
   const rocks=level<3?0:Math.min(2+Math.floor(level/3),Math.floor(R*C*0.06));
+  const pD=diagChance();
   for(let attempt=0;attempt<20;attempt++){
     grid=new Array(R*C).fill(-1);
+    corner=new Array(R*C).fill(-1); // which snake has a diagonal link through this cell's bottom-right corner
+    const rayCorner=new Array(R*C).fill(-1); // latest snake whose diagonal path crosses this corner
     for(let k=0;k<rocks;k++){grid[rnd(R*C)]=-2}
     pieces=[];
     let free=grid.filter(v=>v===-1).length, filled=0, target=free*0.82;
     for(let phase=0;phase<2;phase++)
     for(let tries=0;tries<Math.max(6000,R*C*(phase?8:12))&&filled<target;tries++){
       const hr=rnd(R),hc=rnd(C); if(grid[idx(hr,hc)]!==-1)continue;
-      const d=rnd(4),[dr,dc]=DIRS[d];
-      const ray=new Set(); let ok=true,r=hr+dr,c=hc+dc;
-      while(inB(r,c)){if(grid[idx(r,c)]!==-1){ok=false;break}ray.add(idx(r,c));r+=dr;c+=dc}
+      const d=Math.random()<pD?4+rnd(4):rnd(4),[dr,dc]=DIRS[d];
+      const ray=new Set(),rayC=new Set(); let ok=true,r=hr,c=hc;
+      while(inB(r+dr,c+dc)){
+        if(dr&&dc){const k=cornerOf(r,c,r+dr,c+dc);if(corner[k]!==-1){ok=false;break}rayC.add(k)}
+        r+=dr;c+=dc;
+        if(grid[idx(r,c)]!==-1){ok=false;break}ray.add(idx(r,c));
+      }
       if(!ok)continue;
       const br=hr-dr,bc=hc-dc;
       if(!inB(br,bc)||grid[idx(br,bc)]!==-1)continue;
+      const links=new Set();
+      if(dr&&dc){const k=cornerOf(hr,hc,br,bc);if(corner[k]!==-1||rayCorner[k]!==-1)continue;links.add(k)}
       const body=[[hr,hc],[br,bc]],used=new Set([idx(hr,hc),idx(br,bc)]);
       const maxLen=Math.min(4+Math.floor(level/3),18),minLen=Math.min(2+Math.floor(level/5),10);
       const want=phase?2+rnd(3):minLen+rnd(maxLen-minLen+1);
+      const steps=pD?DIRS:ORTHO;
       let pd=[-dr,-dc];
       while(body.length<want){
         const [lr,lc]=body[body.length-1];
-        let opts=DIRS.map(v=>[lr+v[0],lc+v[1],v]).filter(([r2,c2])=>inB(r2,c2)&&grid[idx(r2,c2)]===-1&&!used.has(idx(r2,c2))&&!ray.has(idx(r2,c2)));
+        let opts=steps.map(v=>[lr+v[0],lc+v[1],v]).filter(([r2,c2,v])=>{
+          if(!inB(r2,c2)||grid[idx(r2,c2)]!==-1||used.has(idx(r2,c2))||ray.has(idx(r2,c2)))return false;
+          if(v[0]&&v[1]){const k=cornerOf(lr,lc,r2,c2);if(corner[k]!==-1||rayCorner[k]!==-1||links.has(k)||rayC.has(k))return false;if(Math.random()>pD)return false}
+          return true});
         if(!opts.length)break;
         let pick=opts.find(o=>o[2][0]===pd[0]&&o[2][1]===pd[1]);
         if(!pick||Math.random()<0.45)pick=opts[rnd(opts.length)];
+        if(pick[2][0]&&pick[2][1])links.add(cornerOf(lr,lc,pick[0],pick[1]));
         body.push([pick[0],pick[1]]);used.add(idx(pick[0],pick[1]));pd=pick[2];
       }
       const id=pieces.length;
       for(const [r2,c2] of body)grid[idx(r2,c2)]=id;
+      for(const k of links)corner[k]=id;
+      for(const k of rayC)rayCorner[k]=id;
       pieces.push({id,d,cells:body.slice().reverse(),gone:false,anim:null,bump:0});
       filled+=body.length;
     }
-    // Grow tails into leftover gaps. A cell can join snake i only if no ray of
+    // Grow tails into leftover gaps. A cell can join snake i only if no path of
     // snake i or any later snake passes through it, so the board stays solvable.
     {
       const rayMax=new Array(R*C).fill(-1);
@@ -174,7 +196,7 @@ function generate(){
       for(let pass=0;pass<cap;pass++){let grew=false;
         for(const p of pieces){if(p.cells.length>=cap)continue;
           const [tr,tc]=p.cells[0];
-          const opts=DIRS.map(v=>[tr+v[0],tc+v[1]]).filter(([r,c])=>inB(r,c)&&grid[idx(r,c)]===-1&&rayMax[idx(r,c)]<p.id);
+          const opts=ORTHO.map(v=>[tr+v[0],tc+v[1]]).filter(([r,c])=>inB(r,c)&&grid[idx(r,c)]===-1&&rayMax[idx(r,c)]<p.id);
           if(!opts.length)continue;
           const [r,c]=opts[rnd(opts.length)];
           p.cells.unshift([r,c]);grid[idx(r,c)]=p.id;filled++;grew=true;}
@@ -229,11 +251,21 @@ function updateHud(){
   $('progFill').style.width=(total?cleared/total*100:0)+'%';
 }
 
-function blocker(p){
+// Walk a snake's exit path. Returns {id,r,c,corner} of the first thing in the way, or null.
+function firstHit(p){
   const [hr,hc]=p.cells[p.cells.length-1],[dr,dc]=DIRS[p.d];
-  let r=hr+dr,c=hc+dc;
-  while(inB(r,c)){const v=grid[idx(r,c)];if(v!==-1&&v!==p.id)return v;r+=dr;c+=dc}
+  let r=hr,c=hc;
+  while(inB(r+dr,c+dc)){
+    if(dr&&dc){const v=corner[cornerOf(r,c,r+dr,c+dc)];if(v!==-1&&v!==p.id)return{id:v,r,c,corner:true}}
+    r+=dr;c+=dc;
+    const v=grid[idx(r,c)];if(v!==-1&&v!==p.id)return{id:v,r,c,corner:false};
+  }
   return null;
+}
+function blocker(p){const h=firstHit(p);return h?h.id:null}
+function clearPiece(p){
+  for(const [r,c] of p.cells)grid[idx(r,c)]=-1;
+  for(let i=1;i<p.cells.length;i++){const a=p.cells[i-1],b=p.cells[i];if(isDiag(a,b))corner[cornerOf(a[0],a[1],b[0],b[1])]=-1}
 }
 
 function tapPiece(p){
@@ -251,7 +283,7 @@ function tapPiece(p){
   let [r,c]=path[path.length-1];
   const extra=Math.max(R,C)+p.cells.length+2;
   for(let i=0;i<extra;i++){r+=dr;c+=dc;path.push([r,c])}
-  for(const [r2,c2] of p.cells)grid[idx(r2,c2)]=-1;
+  clearPiece(p);
   p.anim={path,s:0,max:extra};
   if(hintPiece===p.id)hintPiece=-1;
   updateHud();
@@ -354,7 +386,7 @@ function drawPiece(p,now){
   ctx.lineCap='round';ctx.lineJoin='round';
   if(glow){ctx.shadowColor='#e11d2e';ctx.shadowBlur=22+10*Math.sin(now/120)}
   ctx.strokeStyle=col;ctx.lineWidth=cs*0.3;
-  const [hx,hy]=pts[pts.length-1],[dr,dc]=DIRS[p.d];
+  const [hx,hy]=pts[pts.length-1],L=Math.hypot(...DIRS[p.d]),dr=DIRS[p.d][0]/L,dc=DIRS[p.d][1]/L;
   ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
   for(let k=1;k<pts.length;k++)ctx.lineTo(pts[k][0],pts[k][1]);
   ctx.stroke();
@@ -373,20 +405,22 @@ function drawPiece(p,now){
 
 function drawPreview(p,now){
   if(!p||p.gone||p.anim){preview=-1;return}
-  const [hr,hc]=p.cells[p.cells.length-1],[dr,dc]=DIRS[p.d];
-  let r=hr+dr,c=hc+dc,hit=null;
-  while(inB(r,c)){const v=grid[idx(r,c)];if(v!==-1&&v!==p.id){hit=[r,c];break}r+=dr;c+=dc}
-  const sx=ox+(hc+.5)*cs+dc*cs*0.55,sy=oy+(hr+.5)*cs+dr*cs*0.55;
-  let ex,ey;
-  if(hit){ex=ox+(hit[1]+.5)*cs-dc*cs*0.5;ey=oy+(hit[0]+.5)*cs-dr*cs*0.5}
-  else{ex=dc>0?W+20:dc<0?-20:sx;ey=dr>0?H+20:dr<0?-20:sy}
+  const [hr,hc]=p.cells[p.cells.length-1],[dr,dc]=DIRS[p.d],L=Math.hypot(dr,dc);
+  const hit=firstHit(p);
+  const sx=ox+(hc+.5)*cs+dc/L*cs*0.55,sy=oy+(hr+.5)*cs+dr/L*cs*0.55;
+  let ex,ey,bx,by;
+  if(hit){
+    if(hit.corner){bx=ox+(hit.c+.5+dc*.5)*cs;by=oy+(hit.r+.5+dr*.5)*cs}
+    else{bx=ox+(hit.c+.5)*cs;by=oy+(hit.r+.5)*cs}
+    ex=bx-dc/L*cs*0.42;ey=by-dr/L*cs*0.42;
+  }else{ex=sx+dc*(W+H);ey=sy+dr*(W+H)}
   const col=hit?'#e11d2e':'#ffffff';
   ctx.save();
   ctx.strokeStyle=col;ctx.globalAlpha=0.9;ctx.lineWidth=Math.max(2,cs*0.09);ctx.lineCap='round';
   ctx.setLineDash([cs*0.18,cs*0.2]);ctx.lineDashOffset=-now/30;
   ctx.beginPath();ctx.moveTo(sx,sy);ctx.lineTo(ex,ey);ctx.stroke();ctx.setLineDash([]);
   if(hit){
-    const bx=ox+(hit[1]+.5)*cs,by=oy+(hit[0]+.5)*cs,k=cs*0.22;
+    const k=cs*0.22;
     ctx.lineWidth=Math.max(3,cs*0.12);
     ctx.beginPath();ctx.arc(bx,by,cs*0.42,0,7);ctx.stroke();
     ctx.beginPath();ctx.moveTo(bx-k,by-k);ctx.lineTo(bx+k,by+k);ctx.moveTo(bx+k,by-k);ctx.lineTo(bx-k,by+k);ctx.stroke();
