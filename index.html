@@ -37,6 +37,7 @@
   <button class="btn" id="hint">💡 <span id="hintN">3</span></button>
   <div id="lvl">Level 1</div>
   <div id="hearts">❤️❤️❤️</div>
+  <button class="btn" id="share" aria-label="Share">📤</button>
 </div>
 <canvas id="c"></canvas>
 <div id="overlay">
@@ -44,6 +45,8 @@
   <p id="oMsg">Tap a snake to send it out the way its head is pointing. If something's in the way, you lose a heart. Rocks never move. Clear the board.</p>
   <button class="go" id="oBtn">PLAY</button>
   <button class="inst hide" id="install">📲 Install app</button>
+  <button class="inst" id="share2">📤 Share with friends</button>
+  <div id="toast" class="hide" style="position:fixed;bottom:40px;left:50%;transform:translateX(-50%);background:#7cf0b4;color:#0b2418;font-weight:700;padding:10px 18px;border-radius:10px">Link copied</div>
   <p class="tip hide" id="iosTip">To install: tap Share <b>⎋</b> then <b>Add to Home Screen</b></p>
 </div>
 <script>
@@ -242,6 +245,16 @@ function loop(now){
   requestAnimationFrame(loop);
 }
 layout();requestAnimationFrame(loop);
+
+// --- Share ---
+const SHARE_URL='https://thephilly640.github.io/slither-out/';
+async function share(){
+  const text=level>1?'I made it to level '+level+' in Slither Out. Beat that:':'Try Slither Out, a snake puzzle game:';
+  if(navigator.share){try{await navigator.share({title:'Slither Out',text,url:SHARE_URL})}catch(e){}return}
+  try{await navigator.clipboard.writeText(text+' '+SHARE_URL)}catch(e){}
+  const t=$('toast');t.classList.remove('hide');setTimeout(()=>t.classList.add('hide'),1800);
+}
+$('share').onclick=share;$('share2').onclick=share;
 
 // --- Installable app ---
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}))}

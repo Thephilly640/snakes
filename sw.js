@@ -1,5 +1,5 @@
 // Bump VERSION whenever the game files change so players get the update.
-const VERSION = 'slither-v1';
+const VERSION = 'slither-v2';
 const FILES = ['./', './index.html', './manifest.json', './icon-192.png', './icon-512.png', './icon-maskable-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
