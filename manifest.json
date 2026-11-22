@@ -1,6 +1,6 @@
 {
-  "name": "Slither Out",
-  "short_name": "Slither Out",
+  "name": "Snakes",
+  "short_name": "Snakes",
   "description": "Tap the snakes out of the board without crashing.",
   "start_url": "./",
   "scope": "./",

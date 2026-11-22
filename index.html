@@ -3,14 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-<title>Slither Out</title>
+<title>Snakes</title>
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#0a0a0a">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Slither Out">
+<meta name="apple-mobile-web-app-title" content="Snakes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
   :root{--bg:#0a0a0a;--card:#161616;--btn:#242424;--txt:#ffffff;--dim:#9a9a9a;--accent:#e11d2e;--red:#e11d2e}
@@ -65,7 +65,7 @@
 <!-- HOME SCREEN -->
 <div id="home" class="screen">
   <img src="icon-512.png" alt="">
-  <h1>Slither Out</h1>
+  <h1>Snakes</h1>
   <p class="sub" id="homeLvl">Level 1</p>
   <button class="big" id="play">Play</button>
   <div class="row">
@@ -307,8 +307,8 @@ updateHud();requestAnimationFrame(loop);
 // share
 const SHARE_URL='https://thephilly640.github.io/slither-out/';
 async function share(){
-  const text=level>1?'I made it to level '+level+' in Slither Out. Beat that:':'Try Slither Out, a snake puzzle game:';
-  if(navigator.share){try{await navigator.share({title:'Slither Out',text,url:SHARE_URL})}catch(e){}return}
+  const text=level>1?'I made it to level '+level+' in Snakes. Beat that:':'Try Snakes, a snake puzzle game:';
+  if(navigator.share){try{await navigator.share({title:'Snakes',text,url:SHARE_URL})}catch(e){}return}
   try{await navigator.clipboard.writeText(text+' '+SHARE_URL)}catch(e){}
   const t=$('toast');t.classList.remove('hide');setTimeout(()=>t.classList.add('hide'),1800);
 }

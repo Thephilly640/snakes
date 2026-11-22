@@ -1,4 +1,4 @@
-# Slither Out
+# Snakes
 
 Tap the snakes off the board without crashing. Play it here: https://thephilly640.github.io/slither-out/
 
