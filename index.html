@@ -34,8 +34,6 @@
   #progFill{height:100%;width:0;background:var(--accent);border-radius:4px;transition:width .3s}
   #lvlLabel{text-align:center;color:var(--dim);font-weight:700;font-size:13px;letter-spacing:.12em;margin-top:6px;flex:none}
   #stage{flex:1;position:relative;min-height:0;overflow:hidden}
-  #zoom{position:absolute;right:4px;bottom:4px;display:flex;flex-direction:column;gap:10px}
-  #zoom .ico{box-shadow:0 4px 14px rgba(0,0,0,.6)}
   canvas{position:absolute;inset:0;width:100%;height:100%}
 
   /* home */
@@ -92,10 +90,6 @@
   <div id="prog"><div id="progFill"></div></div>
   <div id="lvlLabel">LEVEL 1</div>
   <div id="stage"><canvas id="c"></canvas>
-    <div id="zoom" class="hide">
-      <button class="ico" id="zIn" aria-label="Zoom in"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
-      <button class="ico" id="zOut" aria-label="Zoom out"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
-    </div>
   </div>
 </div>
 
@@ -117,7 +111,7 @@
 <script>
 const $=id=>document.getElementById(id);
 // Bump on every update so you can tell the new build loaded.
-const APP_VERSION='1.8';
+const APP_VERSION='1.9';
 const APP_DATE='Nov 22, 2026';
 $('ver').textContent='Version '+APP_VERSION+' · '+APP_DATE;
 const cv=$('c'),ctx=cv.getContext('2d');
@@ -198,7 +192,6 @@ function layout(){
   if(!R)return;
   bcs=Math.min((W-12)/C,(H-12)/R);
   zoomable=C>11;
-  $('zoom').classList.toggle('hide',!zoomable);
   if(!zoomable){zm=1;panX=panY=0}
   view();
 }
@@ -305,8 +298,6 @@ function endPtr(e){
 cv.addEventListener('pointerup',endPtr);
 cv.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);if(!ptrs.size){clearHold(gesture);gesture=null;preview=-1}});
 cv.addEventListener('wheel',e=>{if(!zoomable)return;e.preventDefault();const [x,y]=local(e);zoomAt(zm*(e.deltaY<0?1.15:1/1.15),x,y)},{passive:false});
-$('zIn').onclick=()=>zoomAt(zm*1.5,W/2,H/2);
-$('zOut').onclick=()=>zoomAt(zm/1.5,W/2,H/2);
 function pieceAt(x,y){
   view();
   let best=null,bd=1e9;
