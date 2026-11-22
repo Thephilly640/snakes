@@ -75,7 +75,7 @@
   </div>
   <p id="iosTip" class="hide">To install: tap Share, then Add to Home Screen</p>
   <div id="ver"></div>
-  <p id="how">Tap a snake to send it out the way its head points. Hit something and you lose a heart. Rocks never move.</p>
+  <p id="how">Tap a snake to send it out the way its head points. Hit something and you lose a heart. Clear a board with no crashes to earn one back, up to 3.</p>
 </div>
 
 <!-- GAME SCREEN -->
@@ -111,7 +111,7 @@
 <script>
 const $=id=>document.getElementById(id);
 // Bump on every update so you can tell the new build loaded.
-const APP_VERSION='1.9';
+const APP_VERSION='2.0';
 const APP_DATE='Nov 22, 2026';
 $('ver').textContent='Version '+APP_VERSION+' · '+APP_DATE;
 const cv=$('c'),ctx=cv.getContext('2d');
@@ -120,7 +120,10 @@ const SNAKE='#ffffff';
 const HEART='<svg viewBox="0 0 24 24"><path fill="FILL" d="M12 21s-7.5-4.6-9.6-9.2C1 8.6 3 5 6.6 5c2.1 0 3.6 1.2 5.4 3.2C13.8 6.2 15.3 5 17.4 5 21 5 23 8.6 21.6 11.8 19.5 16.4 12 21 12 21z"/></svg>';
 
 let level=1; try{level=+localStorage.getItem('so_level')||1}catch(e){}
-let R,C,grid,pieces,hearts,hints,cs,ox,oy,W,H,state='menu',hintPiece=-1,hintUntil=0,total=0;
+let R,C,grid,pieces,hearts,hints,cs,ox,oy,W,H,state='menu',hintPiece=-1,hintUntil=0,total=0,mistakes=0;
+// Hearts carry over between levels: start with 1, earn 1 per perfect board, max 3.
+hearts=1;try{hearts=Math.min(3,+localStorage.getItem('so_lives')||1)}catch(e){}
+function saveLives(){try{localStorage.setItem('so_lives',hearts)}catch(e){}}
 
 function rnd(n){return Math.floor(Math.random()*n)}
 function inB(r,c){return r>=0&&c>=0&&r<R&&c<C}
@@ -179,7 +182,7 @@ function generate(){
     }
     if(filled>=target*0.85&&pieces.length>=Math.min(6,R*C/4))break;
   }
-  zm=1;panX=panY=0;total=pieces.length;hearts=3;hints=3;hintPiece=-1;
+  zm=1;panX=panY=0;total=pieces.length;if(!(hearts>0))hearts=1;mistakes=0;saveLives();hints=3;hintPiece=-1;
   layout();updateHud();
 }
 
@@ -239,9 +242,9 @@ function tapPiece(p){
   if(b!==null){
     p.bump=performance.now();
     if(b>=0)pieces[b].bump=performance.now();
-    hearts--;updateHud();
+    hearts--;mistakes++;saveLives();updateHud();
     if(navigator.vibrate)try{navigator.vibrate(80)}catch(e){}
-    if(hearts<=0){state='lost';setTimeout(()=>sheet('Out of hearts','Same level, fresh board.','Try again'),500)}
+    if(hearts<=0){state='lost';setTimeout(()=>sheet('Out of hearts','You start back at 1 heart. Same level, fresh board.','Try again'),500)}
     return;
   }
   const [dr,dc]=DIRS[p.d],path=p.cells.map(x=>[x[0],x[1]]);
@@ -414,7 +417,12 @@ function loop(now){
     if(state==='play'&&left===0){
       state='won';level++;try{localStorage.setItem('so_level',level)}catch(e){}
       updateHud();
-      setTimeout(()=>sheet('Board clear!',hearts===3?'Perfect run, no hearts lost.':'Cleared with '+hearts+' heart'+(hearts>1?'s':'')+' left.','Level '+level),350);
+      let msg;
+      if(mistakes===0&&hearts<3){hearts++;msg='Perfect! +1 heart. You have '+hearts+' now.'}
+      else if(mistakes===0)msg='Perfect! Hearts are already full.';
+      else msg='Cleared with '+hearts+' heart'+(hearts>1?'s':'')+'. Go perfect next time to earn one.';
+      saveLives();updateHud();
+      setTimeout(()=>sheet(mistakes===0?'Perfect!':'Board clear!',msg,'Level '+level),350);
     }
   }
   requestAnimationFrame(loop);
