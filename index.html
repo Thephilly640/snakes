@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Slither Out</title>
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#14161f">
+<meta name="theme-color" content="#0a0a0a">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-title" content="Slither Out">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <style>
-  :root{--bg:#14161f;--card:#1c2030;--btn:#2b3149;--txt:#eef1f8;--dim:#8a91aa;--accent:#7cf0b4;--red:#ff4d6a}
+  :root{--bg:#0a0a0a;--card:#161616;--btn:#242424;--txt:#ffffff;--dim:#9a9a9a;--accent:#e11d2e;--red:#e11d2e}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%;background:var(--bg);color:var(--txt);overflow:hidden;overscroll-behavior:none;touch-action:none;
     font-family:ui-rounded,"SF Pro Rounded",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
@@ -27,22 +27,22 @@
   #bar{display:flex;align-items:center;gap:10px;height:56px;flex:none}
   .ico{width:48px;height:48px;border-radius:50%;background:var(--btn);display:grid;place-items:center;position:relative;flex:none}
   .ico svg{width:24px;height:24px;fill:none;stroke:var(--txt);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
-  .badge{position:absolute;top:-3px;right:-3px;background:var(--accent);color:#0b2418;font-size:12px;font-weight:800;min-width:20px;height:20px;border-radius:10px;display:grid;place-items:center;padding:0 5px}
+  .badge{position:absolute;top:-3px;right:-3px;background:var(--accent);color:#fff;font-size:12px;font-weight:800;min-width:20px;height:20px;border-radius:10px;display:grid;place-items:center;padding:0 5px}
   #hearts{flex:1;display:flex;justify-content:center;gap:6px}
   #hearts svg{width:30px;height:30px}
-  #prog{height:8px;border-radius:4px;background:#262b3d;margin:12px 4px 4px;overflow:hidden;flex:none}
+  #prog{height:8px;border-radius:4px;background:#262626;margin:12px 4px 4px;overflow:hidden;flex:none}
   #progFill{height:100%;width:0;background:var(--accent);border-radius:4px;transition:width .3s}
   #lvlLabel{text-align:center;color:var(--dim);font-weight:700;font-size:13px;letter-spacing:.12em;margin-top:6px;flex:none}
   #stage{flex:1;position:relative;min-height:0}
   canvas{position:absolute;inset:0;width:100%;height:100%}
 
   /* home */
-  #home{align-items:center;justify-content:center;text-align:center;background:radial-gradient(120% 70% at 50% 0%,#23293f 0%,var(--bg) 60%)}
+  #home{align-items:center;justify-content:center;text-align:center;background:radial-gradient(120% 70% at 50% 0%,#3a0a10 0%,var(--bg) 60%)}
   #home img{width:120px;height:120px;border-radius:28px;box-shadow:0 12px 40px rgba(0,0,0,.5)}
   #home h1{font-size:40px;margin:22px 0 4px;letter-spacing:.02em}
   #home .sub{color:var(--dim);font-weight:700;margin:0 0 34px;font-size:16px}
-  .big{width:min(320px,80vw);height:62px;border-radius:31px;background:var(--accent);color:#0b2418;font-size:22px;font-weight:800;box-shadow:0 6px 0 #4fb685}
-  .big:active{transform:translateY(4px);box-shadow:0 2px 0 #4fb685}
+  .big{width:min(320px,80vw);height:62px;border-radius:31px;background:var(--accent);color:#fff;font-size:22px;font-weight:800;box-shadow:0 6px 0 #8f0f1b}
+  .big:active{transform:translateY(4px);box-shadow:0 2px 0 #8f0f1b}
   .row{display:flex;gap:12px;margin-top:16px;width:min(320px,80vw)}
   .pill{flex:1;height:52px;border-radius:26px;background:var(--btn);font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center;gap:8px}
   .pill svg{width:20px;height:20px;fill:none;stroke:var(--txt);stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
@@ -109,7 +109,7 @@
 const $=id=>document.getElementById(id);
 const cv=$('c'),ctx=cv.getContext('2d');
 const DIRS=[[-1,0],[0,1],[1,0],[0,-1]]; // up,right,down,left
-const SNAKE='#eef1f8';
+const SNAKE='#ffffff';
 const HEART='<svg viewBox="0 0 24 24"><path fill="FILL" d="M12 21s-7.5-4.6-9.6-9.2C1 8.6 3 5 6.6 5c2.1 0 3.6 1.2 5.4 3.2C13.8 6.2 15.3 5 17.4 5 21 5 23 8.6 21.6 11.8 19.5 16.4 12 21 12 21z"/></svg>';
 
 let level=1; try{level=+localStorage.getItem('so_level')||1}catch(e){}
@@ -173,7 +173,7 @@ window.addEventListener('resize',layout);
 function updateHud(){
   $('lvlLabel').textContent='LEVEL '+level;
   $('homeLvl').textContent='Level '+level;
-  let h='';for(let i=0;i<3;i++)h+=HEART.replace('FILL',i<hearts?'#ff4d6a':'#3a3f55');
+  let h='';for(let i=0;i<3;i++)h+=HEART.replace('FILL',i<hearts?'#e11d2e':'#333333');
   $('hearts').innerHTML=h;
   $('hintN').textContent=hints;
   $('hint').style.opacity=hints?1:.45;
@@ -253,12 +253,11 @@ function drawPiece(p,now){
   pts.push(pt(path,f1));
   let sx=0,sy=0,col=SNAKE;
   const bt=now-p.bump;
-  if(bt<380){const a=Math.sin(bt/380*Math.PI*4)*cs*0.12*(1-bt/380);sx=DIRS[p.d][1]*a;sy=DIRS[p.d][0]*a;col='#ff4d6a'}
+  if(bt<380){const a=Math.sin(bt/380*Math.PI*4)*cs*0.12*(1-bt/380);sx=DIRS[p.d][1]*a;sy=DIRS[p.d][0]*a;col='#e11d2e'}
   const glow=p.id===hintPiece&&now<hintUntil;
-  if(glow)col='#7cf0b4';
   ctx.save();ctx.translate(sx,sy);
   ctx.lineCap='round';ctx.lineJoin='round';
-  if(glow){ctx.shadowColor='#7cf0b4';ctx.shadowBlur=16+8*Math.sin(now/120)}
+  if(glow){ctx.shadowColor='#e11d2e';ctx.shadowBlur=22+10*Math.sin(now/120)}
   ctx.strokeStyle=col;ctx.lineWidth=cs*0.3;
   const [hx,hy]=pts[pts.length-1],[dr,dc]=DIRS[p.d];
   ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
@@ -271,7 +270,7 @@ function drawPiece(p,now){
   ctx.lineTo(hx+dr*hs-dc*hs*0.2,hy-dc*hs-dr*hs*0.2);
   ctx.closePath();ctx.fill();
   ctx.shadowBlur=0;
-  ctx.fillStyle='#14161f';
+  ctx.fillStyle='#0a0a0a';
   const ex=dc*hs*0.22,ey=dr*hs*0.22,px=-dr*hs*0.36,py=dc*hs*0.36,er=Math.max(1.5,cs*0.045);
   ctx.beginPath();ctx.arc(hx+ex+px,hy+ey+py,er,0,7);ctx.arc(hx+ex-px,hy+ey-py,er,0,7);ctx.fill();
   ctx.restore();
@@ -286,8 +285,8 @@ function loop(now){
     for(let r=0;r<R;r++)for(let c=0;c<C;c++){ctx.beginPath();ctx.arc(ox+(c+.5)*cs,oy+(r+.5)*cs,cs*0.05,0,7);ctx.fill()}
     for(let r=0;r<R;r++)for(let c=0;c<C;c++)if(grid[idx(r,c)]===-2){
       const x=ox+c*cs+cs*0.14,y=oy+r*cs+cs*0.14,s=cs*0.72;
-      ctx.fillStyle='#3d4358';ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,s,s,cs*0.22):ctx.rect(x,y,s,s);ctx.fill();
-      ctx.fillStyle='#50576f';ctx.beginPath();ctx.arc(x+s*0.35,y+s*0.35,s*0.15,0,7);ctx.fill();
+      ctx.fillStyle='#3a3a3a';ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,s,s,cs*0.22):ctx.rect(x,y,s,s);ctx.fill();
+      ctx.fillStyle='#4d4d4d';ctx.beginPath();ctx.arc(x+s*0.35,y+s*0.35,s*0.15,0,7);ctx.fill();
     }
     let left=0;
     for(const p of pieces){
