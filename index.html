@@ -33,7 +33,9 @@
   #prog{height:8px;border-radius:4px;background:#262626;margin:12px 4px 4px;overflow:hidden;flex:none}
   #progFill{height:100%;width:0;background:var(--accent);border-radius:4px;transition:width .3s}
   #lvlLabel{text-align:center;color:var(--dim);font-weight:700;font-size:13px;letter-spacing:.12em;margin-top:6px;flex:none}
-  #stage{flex:1;position:relative;min-height:0}
+  #stage{flex:1;position:relative;min-height:0;overflow:hidden}
+  #zoom{position:absolute;right:4px;bottom:4px;display:flex;flex-direction:column;gap:10px}
+  #zoom .ico{box-shadow:0 4px 14px rgba(0,0,0,.6)}
   canvas{position:absolute;inset:0;width:100%;height:100%}
 
   /* home */
@@ -87,7 +89,12 @@
   </div>
   <div id="prog"><div id="progFill"></div></div>
   <div id="lvlLabel">LEVEL 1</div>
-  <div id="stage"><canvas id="c"></canvas></div>
+  <div id="stage"><canvas id="c"></canvas>
+    <div id="zoom" class="hide">
+      <button class="ico" id="zIn" aria-label="Zoom in"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+      <button class="ico" id="zOut" aria-label="Zoom out"><svg viewBox="0 0 24 24"><path d="M5 12h14"/></svg></button>
+    </div>
+  </div>
 </div>
 
 <!-- RESULT SHEET -->
@@ -120,15 +127,15 @@ function inB(r,c){return r>=0&&c>=0&&r<R&&c<C}
 function idx(r,c){return r*C+c}
 
 function generate(){
-  C=Math.min(5+Math.floor(level/2),11);
-  R=Math.min(Math.round(C*1.5),16);
+  C=Math.min(5+Math.floor(level/2),30);
+  R=C<=11?Math.min(Math.round(C*1.5),16):Math.round(C*1.45);
   const rocks=level<3?0:Math.min(2+Math.floor(level/3),Math.floor(R*C*0.06));
   for(let attempt=0;attempt<20;attempt++){
     grid=new Array(R*C).fill(-1);
     for(let k=0;k<rocks;k++){grid[rnd(R*C)]=-2}
     pieces=[];
     let free=grid.filter(v=>v===-1).length, filled=0, target=free*0.82;
-    for(let tries=0;tries<6000&&filled<target;tries++){
+    for(let tries=0;tries<Math.max(6000,R*C*12)&&filled<target;tries++){
       const hr=rnd(R),hc=rnd(C); if(grid[idx(hr,hc)]!==-1)continue;
       const d=rnd(4),[dr,dc]=DIRS[d];
       const ray=new Set(); let ok=true,r=hr+dr,c=hc+dc;
@@ -154,7 +161,7 @@ function generate(){
     }
     if(pieces.length>=Math.min(6+level,R*C/4))break;
   }
-  total=pieces.length;hearts=3;hints=3;hintPiece=-1;
+  zm=1;panX=panY=0;total=pieces.length;hearts=3;hints=3;hintPiece=-1;
   layout();updateHud();
 }
 
@@ -165,8 +172,29 @@ function layout(){
   cv.width=W*dpr;cv.height=H*dpr;
   ctx.setTransform(dpr,0,0,dpr,0,0);
   if(!R)return;
-  cs=Math.floor(Math.min((W-12)/C,(H-12)/R));
-  ox=(W-cs*C)/2;oy=(H-cs*R)/2;
+  bcs=Math.min((W-12)/C,(H-12)/R);
+  zoomable=C>11;
+  $('zoom').classList.toggle('hide',!zoomable);
+  if(!zoomable){zm=1;panX=panY=0}
+  view();
+}
+// --- zoom & pan ---
+let bcs=0,zm=1,panX=0,panY=0,zoomable=false;
+function maxZoom(){return Math.max(1,52/bcs)}
+function clampPan(){
+  const bw=C*bcs*zm,bh=R*bcs*zm;
+  const mx=Math.max(0,(bw-W)/2+16),my=Math.max(0,(bh-H)/2+16);
+  panX=Math.max(-mx,Math.min(mx,panX));panY=Math.max(-my,Math.min(my,panY));
+}
+function view(){
+  clampPan();
+  cs=bcs*zm;ox=W/2-C*cs/2+panX;oy=H/2-R*cs/2+panY;
+}
+function zoomAt(nz,x,y){
+  nz=Math.max(1,Math.min(maxZoom(),nz));
+  view();
+  const wx=(x-ox)/cs,wy=(y-oy)/cs,ncs=bcs*nz;
+  panX=x-wx*ncs-W/2+C*ncs/2;panY=y-wy*ncs-H/2+R*ncs/2;zm=nz;view();
 }
 window.addEventListener('resize',layout);
 
@@ -209,17 +237,56 @@ function tapPiece(p){
   updateHud();
 }
 
+const ptrs=new Map();let gesture=null;
+function local(e){const r=cv.getBoundingClientRect();return [e.clientX-r.left,e.clientY-r.top]}
 cv.addEventListener('pointerdown',e=>{
   if(state!=='play')return;
-  const rect=cv.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;
+  try{cv.setPointerCapture(e.pointerId)}catch(_){}
+  ptrs.set(e.pointerId,local(e));
+  if(ptrs.size===1){const [x,y]=local(e);gesture={x0:x,y0:y,lx:x,ly:y,moved:false,pinched:false}}
+  else if(ptrs.size===2&&zoomable&&gesture){
+    const [a,b]=[...ptrs.values()];
+    gesture.pinched=true;gesture.d0=Math.hypot(a[0]-b[0],a[1]-b[1]);gesture.z0=zm;
+  }
+});
+cv.addEventListener('pointermove',e=>{
+  if(!ptrs.has(e.pointerId)||!gesture)return;
+  const p=local(e);ptrs.set(e.pointerId,p);
+  if(ptrs.size>=2&&gesture.pinched){
+    const [a,b]=[...ptrs.values()];
+    const d=Math.hypot(a[0]-b[0],a[1]-b[1]),mx=(a[0]+b[0])/2,my=(a[1]+b[1])/2;
+    if(gesture.mx!==undefined){panX+=mx-gesture.mx;panY+=my-gesture.my}
+    gesture.mx=mx;gesture.my=my;
+    zoomAt(gesture.z0*d/gesture.d0,mx,my);
+  }else if(ptrs.size===1){
+    if(Math.hypot(p[0]-gesture.x0,p[1]-gesture.y0)>10)gesture.moved=true;
+    if(gesture.moved&&zoomable&&zm>1){panX+=p[0]-gesture.lx;panY+=p[1]-gesture.ly;view()}
+    gesture.lx=p[0];gesture.ly=p[1];
+  }
+});
+function endPtr(e){
+  if(!ptrs.has(e.pointerId))return;
+  ptrs.delete(e.pointerId);
+  if(ptrs.size===0&&gesture){
+    const g=gesture;gesture=null;
+    if(!g.moved&&!g.pinched&&state==='play')tapAt(g.x0,g.y0);
+  }
+}
+cv.addEventListener('pointerup',endPtr);
+cv.addEventListener('pointercancel',e=>{ptrs.delete(e.pointerId);if(!ptrs.size)gesture=null});
+cv.addEventListener('wheel',e=>{if(!zoomable)return;e.preventDefault();const [x,y]=local(e);zoomAt(zm*(e.deltaY<0?1.15:1/1.15),x,y)},{passive:false});
+$('zIn').onclick=()=>zoomAt(zm*1.5,W/2,H/2);
+$('zOut').onclick=()=>zoomAt(zm/1.5,W/2,H/2);
+function tapAt(x,y){
+  view();
   let best=null,bd=1e9;
   for(const p of pieces){if(p.gone||p.anim)continue;
     for(const [pr,pc] of p.cells){
       const d=Math.hypot(ox+(pc+.5)*cs-x,oy+(pr+.5)*cs-y);
       if(d<bd){bd=d;best=p}
     }}
-  if(best&&bd<cs*0.75)tapPiece(best);
-});
+  if(best&&bd<Math.max(cs*0.75,14))tapPiece(best);
+}
 
 // screens
 function show(id){for(const s of ['home','game'])$(s).classList.toggle('hide',s!==id);if(id==='game')layout()}
@@ -235,7 +302,8 @@ $('restart').onclick=()=>{if(state==='play'||state==='lost')startLevel()};
 $('hint').onclick=()=>{
   if(state!=='play'||hints<=0)return;
   const free=pieces.find(p=>!p.gone&&!p.anim&&blocker(p)===null);
-  if(free){hintPiece=free.id;hintUntil=performance.now()+2200;hints--;updateHud()}
+  if(free){hintPiece=free.id;hintUntil=performance.now()+2200;hints--;updateHud();
+    if(zm>1){const [hr,hc]=free.cells[free.cells.length-1];panX+=W/2-(ox+(hc+.5)*cs);panY+=H/2-(oy+(hr+.5)*cs);view()}}
 };
 
 // drawing
@@ -280,6 +348,7 @@ let last=performance.now();
 function loop(now){
   const dt=Math.min(0.05,(now-last)/1000);last=now;
   if(state!=='menu'&&R){
+    view();
     ctx.clearRect(0,0,W,H);
     ctx.fillStyle='rgba(255,255,255,.06)';
     for(let r=0;r<R;r++)for(let c=0;c<C;c++){ctx.beginPath();ctx.arc(ox+(c+.5)*cs,oy+(r+.5)*cs,cs*0.05,0,7);ctx.fill()}
