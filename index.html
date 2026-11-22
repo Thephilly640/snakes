@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>Slither Out</title>
+<style>
+  html,body{margin:0;height:100%;background:#14161f;color:#e9ecf5;overflow:hidden;touch-action:none;
+    font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;user-select:none;-webkit-user-select:none}
+  #top{position:absolute;top:0;left:0;right:0;height:64px;display:flex;align-items:center;gap:10px;padding:0 14px;max-width:560px;margin:0 auto}
+  .btn{height:44px;min-width:44px;border-radius:22px;border:0;background:#2a2f42;color:#e9ecf5;font:inherit;font-weight:700;font-size:15px;padding:0 14px;cursor:pointer}
+  .btn:active{transform:scale(.95)}
+  #lvl{font-weight:800;font-size:18px;flex:1;text-align:center}
+  #hearts{font-size:22px;letter-spacing:2px;min-width:80px;text-align:right}
+  canvas{position:absolute;left:0;top:64px}
+  #overlay{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    background:rgba(10,12,18,.82);text-align:center;padding:24px}
+  #overlay h1{margin:0 0 8px;font-size:34px}
+  #overlay p{margin:6px 0;opacity:.85;font-size:16px;max-width:320px;line-height:1.45}
+  #overlay .go{margin-top:20px;font-size:20px;font-weight:800;padding:14px 44px;border:0;border-radius:14px;background:#7cf0b4;color:#0b2418;cursor:pointer}
+  .hide{display:none!important}
+</style>
+</head>
+<body>
+<div id="top">
+  <button class="btn" id="restart" aria-label="Restart level">↻</button>
+  <button class="btn" id="hint">💡 <span id="hintN">3</span></button>
+  <div id="lvl">Level 1</div>
+  <div id="hearts">❤️❤️❤️</div>
+</div>
+<canvas id="c"></canvas>
+<div id="overlay">
+  <h1 id="oTitle">SLITHER OUT</h1>
+  <p id="oMsg">Tap a snake to send it out the way its head is pointing. If something's in the way, you lose a heart. Rocks never move. Clear the board.</p>
+  <button class="go" id="oBtn">PLAY</button>
+</div>
+<script>
+const cv=document.getElementById('c'),ctx=cv.getContext('2d');
+const $=id=>document.getElementById(id);
+const DIRS=[[-1,0],[0,1],[1,0],[0,-1]]; // up,right,down,left
+const PAL=['#7cf0b4','#7aa2ff','#ff8fa3','#ffd166','#c49bff','#5ee0f0','#ffa66b','#b5f26b'];
+
+let level=1; try{level=+localStorage.getItem('so_level')||1}catch(e){}
+let R,C,grid,pieces,hearts,hints,cs,ox,oy,W,H,state='menu',hintPiece=-1,hintUntil=0;
+
+function rnd(n){return Math.floor(Math.random()*n)}
+function inB(r,c){return r>=0&&c>=0&&r<R&&c<C}
+function idx(r,c){return r*C+c}
+
+function generate(){
+  C=Math.min(5+Math.floor(level/2),11);
+  R=Math.min(Math.round(C*1.5),16);
+  const rocks=level<3?0:Math.min(2+Math.floor(level/3),Math.floor(R*C*0.06));
+  for(let attempt=0;attempt<20;attempt++){
+    grid=new Array(R*C).fill(-1);
+    for(let k=0;k<rocks;k++){grid[rnd(R*C)]=-2}
+    pieces=[];
+    let free=grid.filter(v=>v===-1).length, filled=0, target=free*0.82;
+    for(let tries=0;tries<6000&&filled<target;tries++){
+      const hr=rnd(R),hc=rnd(C); if(grid[idx(hr,hc)]!==-1)continue;
+      const d=rnd(4),[dr,dc]=DIRS[d];
+      const ray=new Set(); let ok=true,r=hr+dr,c=hc+dc;
+      while(inB(r,c)){if(grid[idx(r,c)]!==-1){ok=false;break}ray.add(idx(r,c));r+=dr;c+=dc}
+      if(!ok)continue;
+      const br=hr-dr,bc=hc-dc;
+      if(!inB(br,bc)||grid[idx(br,bc)]!==-1)continue;
+      const body=[[hr,hc],[br,bc]],used=new Set([idx(hr,hc),idx(br,bc)]);
+      const want=2+rnd(Math.min(6,2+Math.floor(level/2)));
+      let pd=[-dr,-dc];
+      while(body.length<want){
+        const [lr,lc]=body[body.length-1];
+        let opts=DIRS.map(v=>[lr+v[0],lc+v[1],v]).filter(([r2,c2])=>inB(r2,c2)&&grid[idx(r2,c2)]===-1&&!used.has(idx(r2,c2))&&!ray.has(idx(r2,c2)));
+        if(!opts.length)break;
+        let pick=opts.find(o=>o[2][0]===pd[0]&&o[2][1]===pd[1]);
+        if(!pick||Math.random()<0.45)pick=opts[rnd(opts.length)];
+        body.push([pick[0],pick[1]]);used.add(idx(pick[0],pick[1]));pd=pick[2];
+      }
+      const id=pieces.length;
+      for(const [r2,c2] of body)grid[idx(r2,c2)]=id;
+      pieces.push({id,d,cells:body.slice().reverse(),color:PAL[id%PAL.length],gone:false,anim:null,bump:0});
+      filled+=body.length;
+    }
+    if(pieces.length>=Math.min(6+level,R*C/4))break;
+  }
+  hearts=3;hints=3;hintPiece=-1;
+  layout();updateHud();
+}
+
+function layout(){
+  W=window.innerWidth;H=window.innerHeight-64;
+  const dpr=window.devicePixelRatio||1;
+  cv.width=W*dpr;cv.height=H*dpr;cv.style.width=W+'px';cv.style.height=H+'px';
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  if(!R)return;
+  cs=Math.floor(Math.min((W-28)/C,(H-28)/R));
+  ox=(W-cs*C)/2;oy=(H-cs*R)/2;
+}
+window.addEventListener('resize',layout);
+
+function updateHud(){
+  $('lvl').textContent='Level '+level;
+  $('hearts').textContent='❤️'.repeat(hearts)+'🖤'.repeat(3-hearts);
+  $('hintN').textContent=hints;
+}
+
+function blocker(p){
+  const [hr,hc]=p.cells[p.cells.length-1],[dr,dc]=DIRS[p.d];
+  let r=hr+dr,c=hc+dc;
+  while(inB(r,c)){const v=grid[idx(r,c)];if(v!==-1&&v!==p.id)return v;r+=dr;c+=dc}
+  return null;
+}
+
+function tapPiece(p){
+  if(p.gone||p.anim)return;
+  const b=blocker(p);
+  if(b!==null){
+    p.bump=performance.now();
+    if(b>=0)pieces[b].bump=performance.now();
+    hearts--;updateHud();
+    if(navigator.vibrate)try{navigator.vibrate(80)}catch(e){}
+    if(hearts<=0){state='lost';setTimeout(()=>showOverlay('Out of hearts','Board got you that time. Same level, fresh layout.','TRY AGAIN'),500)}
+    return;
+  }
+  // build exit path: tail..head, then straight on past the edge
+  const [dr,dc]=DIRS[p.d],path=p.cells.map(x=>[x[0],x[1]]);
+  let [r,c]=path[path.length-1];
+  const extra=Math.max(R,C)+p.cells.length+2;
+  for(let i=0;i<extra;i++){r+=dr;c+=dc;path.push([r,c])}
+  for(const [r2,c2] of p.cells)grid[idx(r2,c2)]=-1;
+  p.anim={path,s:0,max:extra};
+  if(hintPiece===p.id)hintPiece=-1;
+}
+
+cv.addEventListener('pointerdown',e=>{
+  if(state!=='play')return;
+  const rect=cv.getBoundingClientRect(),x=e.clientX-rect.left,y=e.clientY-rect.top;
+  const c=Math.floor((x-ox)/cs),r=Math.floor((y-oy)/cs);
+  let best=null,bd=1e9;
+  for(const p of pieces){if(p.gone||p.anim)continue;
+    for(const [pr,pc] of p.cells){
+      const cx=ox+(pc+.5)*cs,cy=oy+(pr+.5)*cs,d=Math.hypot(cx-x,cy-y);
+      if(d<bd){bd=d;best=p}
+    }}
+  if(best&&bd<cs*0.75)tapPiece(best);
+});
+
+$('restart').onclick=()=>{if(state==='play'||state==='lost'){generate();state='play';$('overlay').classList.add('hide')}};
+$('hint').onclick=()=>{
+  if(state!=='play'||hints<=0)return;
+  const free=pieces.find(p=>!p.gone&&!p.anim&&blocker(p)===null);
+  if(free){hintPiece=free.id;hintUntil=performance.now()+2200;hints--;updateHud()}
+};
+$('oBtn').onclick=()=>{generate();state='play';$('overlay').classList.add('hide')};
+
+function showOverlay(t,m,b){$('oTitle').textContent=t;$('oMsg').textContent=m;$('oBtn').textContent=b;$('overlay').classList.remove('hide')}
+
+function pt(path,f){
+  const i=Math.max(0,Math.min(path.length-1,Math.floor(f))),j=Math.min(path.length-1,i+1),t=f-i;
+  const a=path[i],b=path[j];
+  return [ox+((a[1]+(b[1]-a[1])*t)+.5)*cs, oy+((a[0]+(b[0]-a[0])*t)+.5)*cs];
+}
+
+function drawPiece(p,now){
+  let path=p.cells,s=0;
+  if(p.anim){path=p.anim.path;s=p.anim.s}
+  const n=p.cells.length,f0=s,f1=s+n-1;
+  const pts=[pt(path,f0)];
+  for(let k=Math.floor(f0)+1;k<f1;k++)pts.push(pt(path,k));
+  pts.push(pt(path,f1));
+  let sx=0,sy=0,col=p.color;
+  const bt=now-p.bump;
+  if(bt<380){const a=Math.sin(bt/380*Math.PI*4)*cs*0.12*(1-bt/380);sx=DIRS[p.d][1]*a;sy=DIRS[p.d][0]*a;col='#ff4d5e'}
+  const glow=p.id===hintPiece&&now<hintUntil;
+  ctx.save();ctx.translate(sx,sy);
+  ctx.lineCap='round';ctx.lineJoin='round';
+  if(glow){ctx.shadowColor='#fff';ctx.shadowBlur=18+8*Math.sin(now/120)}
+  // body
+  ctx.strokeStyle=col;ctx.lineWidth=cs*0.38;
+  const [hx,hy]=pts[pts.length-1],[dr,dc]=DIRS[p.d];
+  ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
+  for(let k=1;k<pts.length;k++)ctx.lineTo(pts[k][0],pts[k][1]);
+  ctx.stroke();
+  // belly stripe
+  ctx.shadowBlur=0;
+  ctx.strokeStyle='rgba(255,255,255,.22)';ctx.lineWidth=cs*0.1;ctx.setLineDash([cs*0.12,cs*0.16]);
+  ctx.beginPath();ctx.moveTo(pts[0][0],pts[0][1]);
+  for(let k=1;k<pts.length;k++)ctx.lineTo(pts[k][0],pts[k][1]);
+  ctx.stroke();ctx.setLineDash([]);
+  // head
+  const hs=cs*0.34;
+  ctx.fillStyle=col;ctx.beginPath();
+  ctx.moveTo(hx+dc*hs*1.25,hy+dr*hs*1.25);
+  ctx.lineTo(hx-dr*hs+dc*-hs*0.2,hy+dc*hs+dr*-hs*0.2);
+  ctx.lineTo(hx+dr*hs+dc*-hs*0.2,hy-dc*hs+dr*-hs*0.2);
+  ctx.closePath();ctx.fill();
+  // eyes
+  ctx.fillStyle='#14161f';
+  const ex=dc*hs*0.25,ey=dr*hs*0.25,px=-dr*hs*0.38,py=dc*hs*0.38,er=Math.max(1.5,cs*0.05);
+  ctx.beginPath();ctx.arc(hx+ex+px,hy+ey+py,er,0,7);ctx.arc(hx+ex-px,hy+ey-py,er,0,7);ctx.fill();
+  ctx.restore();
+}
+
+let last=performance.now();
+function loop(now){
+  const dt=Math.min(0.05,(now-last)/1000);last=now;
+  ctx.clearRect(0,0,W,H);
+  if(R&&state!=='menu'){
+    // board
+    ctx.fillStyle='#1b1e2b';
+    ctx.beginPath();ctx.roundRect?ctx.roundRect(ox-8,oy-8,cs*C+16,cs*R+16,14):ctx.rect(ox-8,oy-8,cs*C+16,cs*R+16);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.07)';
+    for(let r=0;r<R;r++)for(let c=0;c<C;c++){ctx.beginPath();ctx.arc(ox+(c+.5)*cs,oy+(r+.5)*cs,cs*0.06,0,7);ctx.fill()}
+    // rocks
+    for(let r=0;r<R;r++)for(let c=0;c<C;c++)if(grid[idx(r,c)]===-2){
+      const x=ox+c*cs+cs*0.12,y=oy+r*cs+cs*0.12,s=cs*0.76;
+      ctx.fillStyle='#4a4f63';ctx.beginPath();ctx.roundRect?ctx.roundRect(x,y,s,s,cs*0.22):ctx.rect(x,y,s,s);ctx.fill();
+      ctx.fillStyle='#5d6379';ctx.beginPath();ctx.arc(x+s*0.35,y+s*0.35,s*0.16,0,7);ctx.fill();
+    }
+    let left=0;
+    for(const p of pieces){
+      if(p.gone)continue;
+      if(p.anim){p.anim.s+=dt*(14+p.anim.s*2.5);if(p.anim.s>=p.anim.max){p.gone=true;continue}}
+      left++;drawPiece(p,now);
+    }
+    if(state==='play'&&left===0){
+      state='won';level++;try{localStorage.setItem('so_level',level)}catch(e){}
+      setTimeout(()=>showOverlay('Board clear!',hearts===3?'Perfect run, no hearts lost.':'Cleared with '+hearts+' heart'+(hearts>1?'s':'')+' left.','LEVEL '+level),350);
+    }
+  }
+  requestAnimationFrame(loop);
+}
+layout();requestAnimationFrame(loop);
+</script>
+</body>
+</html>
