@@ -305,7 +305,7 @@ function loop(now){
 updateHud();requestAnimationFrame(loop);
 
 // share
-const SHARE_URL='https://thephilly640.github.io/slither-out/';
+const SHARE_URL='https://thephilly640.github.io/snakes/';
 async function share(){
   const text=level>1?'I made it to level '+level+' in Snakes. Beat that:':'Try Snakes, a snake puzzle game:';
   if(navigator.share){try{await navigator.share({title:'Snakes',text,url:SHARE_URL})}catch(e){}return}
